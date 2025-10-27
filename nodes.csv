@@ -1,0 +1,48 @@
+id,type,name,x,y,notes
+1,runway_thr,RWY_07,2,27,Threshold runway 07
+2,runway_thr,RWY_25,66,27,Threshold runway 25
+3,taxiway,TWY_B_START,66,20,Początek taxiway B
+4,taxiway,TWY_B_END,2,20,Koniec taxiway B
+5,taxiway,TWY_F_START,2,20,Początek taxiway F
+6,taxiway,TWY_F_END,2,27,Koniec taxiway F
+7,taxiway,TWY_D_START,25,20,Początek taxiway D
+8,taxiway,TWY_D_END,25,27,Koniec taxiway D
+9,taxiway,TWY_C_START,43,20,Początek taxiway C
+10,taxiway,TWY_C_END,43,27,Koniec taxiway C
+11,taxiway,TWY_A_START,66,20,Początek taxiway A
+12,taxiway,TWY_A_END,66,27,Koniec taxiway A
+13,stand,STAND_1,56,9,Stanowisko postojowe 1
+14,stand,STAND_2,58,9,Stanowisko postojowe 2
+15,stand,STAND_3,59,9,Stanowisko postojowe 3
+16,stand,STAND_4,61,9,Stanowisko postojowe 4
+17,stand,STAND_5,63,9,Stanowisko postojowe 5
+18,stand,STAND_6,64,9,Stanowisko postojowe 6
+19,stand,STAND_7,64,10,Stanowisko postojowe 7
+20,stand,STAND_8,65,11,Stanowisko postojowe 8
+21,stand,STAND_9,65,12,Stanowisko postojowe 9
+22,stand,STAND_10,65,18,Stanowisko postojowe 10
+23,stand,STAND_11,65,17,Stanowisko postojowe 11
+24,stand,STAND_12,65,16,Stanowisko postojowe 12
+25,stand,STAND_13,61,11,Stanowisko postojowe 13
+26,stand,STAND_14,60,11,Stanowisko postojowe 14
+27,stand,STAND_15,59,11,Stanowisko postojowe 15
+28,stand,STAND_16,58,11,Stanowisko postojowe 16
+29,apron,APRON_MAIN,56,16,Centralny punkt płyty postojowej
+30,apron,APRON_NORTH,56,10,Północna część płyty
+31,apron,APRON_SOUTH,63,10,Południowa część płyty
+32,connector,CONN_1,64,11,Łącznik 1
+33,connector,CONN_2,64,12,Łącznik 2
+34,connector,CONN_3,66,14,Łącznik 3
+35,connector,CONN_4,66,20,Łącznik 4
+36,connector,CONN_5,52,20,Łącznik 5
+37,connector,CONN_6,60,20,Łącznik 6
+38,connector,CONN_7,56,10,Łącznik 7
+39,connector,CONN_8,58,10,Łącznik 8
+40,connector,CONN_9,59,10,Łącznik 9
+41,connector,CONN_10,60,10,Łącznik 10
+42,connector,CONN_11,61,10,Łącznik 11
+43,connector,CONN_13,64,11,Łącznik 12
+44,connector,CONN_14,64,12,Łącznik 13
+45,connector,CONN_15,66,16,Łącznik 14
+46,connector,CONN_16,66,17,Łącznik 15
+47,connector,CONN_17,66,18,Łącznik 16

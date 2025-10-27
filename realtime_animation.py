@@ -13,33 +13,31 @@ import matplotlib.pyplot as plt
 
 def run_realtime_animation():
     """Uruchamia animację w czasie rzeczywistym"""
-    print("🎬 Uruchamianie animacji symulacji lotniska w czasie rzeczywistym...")
+    print("🎬 Uruchamianie animacji symulacji lotniska Balice w czasie rzeczywistym...")
     
     # Parametry symulacji
-    width = 20
-    height = 20
-    num_airplanes = 10
+    num_airplanes = 0
     
     print(f"Parametry:")
-    print(f"- Rozmiar lotniska: {width}x{height}")
+    print(f"- Mapa: Graf lotniska (nodes.csv, edges.csv)")
     print(f"- Liczba samolotów: {num_airplanes}")
-    print(f"- Prędkość animacji: 500ms między klatkami")
+    print(f"- Prędkość animacji: 1000ms między klatkami")
     print()
     
     # Tworzenie modelu i wizualizacji
-    model = AirportModel(width=width, height=height, num_airplanes=num_airplanes)
+    model = AirportModel(num_airplanes=num_airplanes)
     viz = AirportVisualization(model)
     
     print("🎨 Animacja gotowa! Zamknij okno aby zakończyć.")
     print("Obserwuj jak samoloty:")
-    print("- 🟦 Niebieskie trójkąty: lecą w kierunku pasa startowego")
-    print("- 🟧 Pomarańczowe kwadraty: zbliżają się do pasa startowego")
+    print("- 🔵 Niebieskie trójkąty: oczekują na lądowanie")
     print("- 🔴 Czerwone koła: lądują na pasie startowym")
     print("- 🟢 Zielone diamenty: wylądowały")
+    print("- 🟠 Pomarańczowe kwadraty: taxi do bramki")
     print()
     
     # Uruchomienie animacji
-    anim = viz.animate(frames=200, interval=1000)  # 500ms między klatkami
+    anim = viz.animate(frames=200, interval=1000)  # 1000ms między klatkami
     plt.show()
     
     print("✅ Animacja zakończona!")

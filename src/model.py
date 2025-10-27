@@ -1,46 +1,64 @@
-import random
-from mesa import Model, Agent
-from .agents import Airplane, RunwayController
-
+from src.graph import AirportGraph
+from src.agents.airplane import Airplane
+from src.agents.runway_controler import RunwayController
+from mesa import Model
+import os
 
 class AirportModel(Model):
-    """Model symulacji lotniska z pasem startowym"""
-    
-    def __init__(self, width=20, height=10, num_airplanes=5):
+    def __init__(self, num_airplanes, nodes_file="nodes.csv", edges_file="edges.csv"):
         super().__init__()
-        self.width = width
-        self.height = height
+        
+        # Inicjalizacja grafu lotniska
+        self.graph = AirportGraph(nodes_file, edges_file)
+        
+        # Pobieranie granic grafu dla wizualizacji
+        min_x, max_x, min_y, max_y = self.graph.get_graph_bounds()
+        self.width = max_x - min_x + 100  # dodajemy margines
+        self.height = max_y - min_y + 100
+        
         self.num_airplanes = num_airplanes
         
-        # Kontroler pasa startowego
+        # Runway controller
         self.runway_controller = RunwayController(self, 1)
-        
-        # Tworzenie samolotów
+
+        # Tworzenie samolotów w węzłach stanowisk postojowych
+        self.airplanes = []
         self.create_airplanes()
-        
+
         self.running = True
-        
+
     def create_airplanes(self):
-        """Tworzy samoloty w różnych pozycjach"""
-        for i in range(self.num_airplanes):
-            # Losowe pozycje startowe (poza pasem startowym)
-            while True:
-                x = random.randrange(self.width)
-                y = random.randrange(self.height)
-                # Pas startowy to środkowe wiersze
-                if not (y >= self.height//2 - 1 and y <= self.height//2 + 1):
-                    break
-            
-            airplane = Airplane(self, i + 2)  # ID zaczyna od 2 (1 to kontroler)
-            airplane.pos = (x, y)
-    
-    def step(self):
-        """Krok symulacji"""
-        # Aktualizacja wszystkich agentów
-        for agent in self.agents:
-            agent.step()
+        # Pobieramy węzły stanowisk postojowych
+        stand_nodes = self.graph.get_stand_nodes()
         
-        # Sprawdź czy wszystkie samoloty wylądowały
-        flying_planes = [a for a in self.agents if isinstance(a, Airplane) and a.state == "flying"]
-        if not flying_planes and not self.runway_controller.is_busy:
-            self.running = False
+        if not stand_nodes:
+            # Jeśli nie ma stanowisk, używamy węzłów apron
+            stand_nodes = self.graph.get_apron_nodes()
+        
+        if not stand_nodes:
+            # Jeśli nie ma ani stanowisk ani apron, używamy wszystkich węzłów
+            stand_nodes = self.graph.get_all_nodes()
+        
+        for i in range(self.num_airplanes):
+            # Wybieramy losowy węzeł stanowiska
+            if stand_nodes:
+                node_id = self.random.choice(stand_nodes)
+                airplane = Airplane(self, i + 2)
+                airplane.current_node = node_id
+                airplane.state = "waiting"
+                self.airplanes.append(airplane)
+
+    def step(self):
+        for agent in self.airplanes + [self.runway_controller]:
+            agent.step()
+
+
+    def portray_cell(cell_type):
+        colors = {
+            "R": "#7f7f7f",  # runway (ciemnoszary)
+            "T": "#bfbfbf",  # taxiway
+            "A": "#9999ff",  # apron
+            "M": "#66cc66",  # terminal
+            "G": "#aaffaa",  # grass
+        }
+        return {"Shape": "rect", "Color": colors[cell_type], "Filled": True, "Layer": 0}

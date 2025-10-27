@@ -14,21 +14,19 @@ import matplotlib.pyplot as plt
 
 def main():
     """Główna funkcja uruchamiająca symulację"""
-    print("🛫 Uruchamianie symulacji lotniska z pasem startowym...")
+    print("🛫 Uruchamianie symulacji lotniska Balice...")
     print("=" * 50)
     
     # Parametry symulacji
-    width = 20
-    height = 10
-    num_airplanes = 5
+    num_airplanes = 8
     
     print(f"Parametry symulacji:")
-    print(f"- Rozmiar lotniska: {width}x{height}")
+    print(f"- Mapa: Graf lotniska (nodes.csv, edges.csv)")
     print(f"- Liczba samolotów: {num_airplanes}")
     print()
     
     # Tworzenie modelu
-    model = AirportModel(width=width, height=height, num_airplanes=num_airplanes)
+    model = AirportModel(num_airplanes=num_airplanes)
     
     # Tworzenie wizualizacji
     viz = AirportVisualization(model)
@@ -69,19 +67,26 @@ def main():
             step_count += 1
             
             if step_count % 10 == 0:
-                print(f"Krok {step_count}: Samoloty w locie: {len([a for a in model.agents if hasattr(a, 'state') and a.state == 'flying'])}")
+                waiting = len([a for a in model.airplanes if a.state == 'waiting'])
+                landing = len([a for a in model.airplanes if a.state == 'landing'])
+                landed = len([a for a in model.airplanes if a.state == 'landed'])
+                taxiing = len([a for a in model.airplanes if a.state == 'taxiing'])
+                print(f"Krok {step_count}: Oczekujące: {waiting}, Lądujące: {landing}, Wylądowane: {landed}, Taxi: {taxiing}")
         
         print(f"\nSymulacja zakończona po {step_count} krokach.")
         
         # Pokazanie końcowych statystyk
         print("Końcowe statystyki:")
-        flying = len([a for a in model.agents if hasattr(a, 'state') and a.state == 'flying'])
-        landing = len([a for a in model.agents if hasattr(a, 'state') and a.state == 'landing'])
-        landed = len([a for a in model.agents if hasattr(a, 'state') and a.state == 'landed'])
-        print(f"- Samoloty w locie: {flying}")
+        waiting = len([a for a in model.airplanes if a.state == 'waiting'])
+        landing = len([a for a in model.airplanes if a.state == 'landing'])
+        landed = len([a for a in model.airplanes if a.state == 'landed'])
+        taxiing = len([a for a in model.airplanes if a.state == 'taxiing'])
+        print(f"- Samoloty oczekujące: {waiting}")
         print(f"- Samoloty lądujące: {landing}")
         print(f"- Samoloty wylądowane: {landed}")
+        print(f"- Samoloty w taxi: {taxiing}")
         print(f"- Pas zajęty: {'TAK' if model.runway_controller.is_busy else 'NIE'}")
+        print(f"- Długość kolejki: {model.runway_controller.get_queue_length()}")
         
         # Pokazanie końcowego stanu
         print("Pokazywanie końcowego stanu...")
@@ -97,10 +102,10 @@ def main():
 
 def demo_quick():
     """Szybka demonstracja symulacji"""
-    print("🚀 Szybka demonstracja symulacji lotniska...")
+    print("🚀 Szybka demonstracja symulacji lotniska Balice...")
     
     # Tworzenie modelu
-    model = AirportModel(width=15, height=8, num_airplanes=3)
+    model = AirportModel(num_airplanes=5)
     
     # Tworzenie wizualizacji
     viz = AirportVisualization(model)
@@ -109,7 +114,11 @@ def demo_quick():
     print("Uruchamianie 20 kroków symulacji...")
     for i in range(20):
         model.step()
-        print(f"Krok {i+1}: Samoloty w locie: {len([a for a in model.agents if hasattr(a, 'state') and a.state == 'flying'])}")
+        waiting = len([a for a in model.airplanes if a.state == 'waiting'])
+        landing = len([a for a in model.airplanes if a.state == 'landing'])
+        landed = len([a for a in model.airplanes if a.state == 'landed'])
+        taxiing = len([a for a in model.airplanes if a.state == 'taxiing'])
+        print(f"Krok {i+1}: Oczekujące: {waiting}, Lądujące: {landing}, Wylądowane: {landed}, Taxi: {taxiing}")
     
     # Pokazanie końcowego stanu
     viz.show_static()
