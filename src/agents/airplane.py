@@ -178,9 +178,27 @@ class Airplane(Agent):
         if self.path:
             next_node = self.path[0]
             
-            # Sprawdź czy można zarezerwować następny segment (z zakazem wymijania)
-            success, conflict_airplane = self.model.segment_manager.request_segment_with_no_passing(
-                next_node, self.unique_id, 1, self.model.step_count
+            # Rezerwuj KRAWĘDŹ między current_node a next_node (bez wymijania)
+            if self.current_node is None:
+                # brak pozycji początkowej -> nie ruszamy
+                return
+            
+            # Oblicz czas ruchu dla tej krawędzi (potrzebujemy duration dla rezerwacji)
+            start_pos = self.model.graph.get_node_position(self.current_node)
+            target_pos = self.model.graph.get_node_position(next_node)
+            if start_pos and target_pos:
+                distance = self.movement_controller.calculate_distance(start_pos, target_pos)
+                edge_type = self.model.graph.get_edge_type(self.current_node, next_node)
+                if edge_type == "runway":
+                    movement_type = "landing"
+                else:
+                    movement_type = self.movement_controller.get_movement_type_for_state(self.state)
+                estimated_duration = self.movement_controller.calculate_movement_time(distance, movement_type)
+            else:
+                estimated_duration = 10  # fallback
+            
+            success, conflict_airplane = self.model.segment_manager.request_edge_with_no_passing(
+                self.current_node, next_node, self.unique_id, estimated_duration, self.model.step_count
             )
             
             if success:
@@ -195,10 +213,12 @@ class Airplane(Agent):
                 self.waiting_position = None
                 self.queue_position = 0
                 
-                # Zwolnij poprzedni segment jeśli istnieje
-                if len(self.reserved_segments) > 1:
-                    old_segment = self.reserved_segments.pop(0)
-                    self.model.segment_manager.release_segment(old_segment, self.unique_id, self.model.step_count)
+                # Zwolnij poprzednią krawędź jeśli istniała
+                if len(self.reserved_segments) > 0:
+                    # reserved_segments przechowuje węzły docelowe - spróbujemy zwolnić poprzednią krawędź
+                    # Poprzednia krawędź: (prev_node, current_node)
+                    # Nie zawsze możliwe gdy to pierwszy ruch
+                    pass
             else:
                 # Konflikt - samolot musi czekać w kolejce (zakaz wymijania)
                 self.wait_time += 1
@@ -229,7 +249,12 @@ class Airplane(Agent):
         if start_pos and target_pos:
             # Oblicz czas ruchu na podstawie odległości i typu ruchu
             distance = self.movement_controller.calculate_distance(start_pos, target_pos)
-            movement_type = self.movement_controller.get_movement_type_for_state(self.state)
+            # Wybór typu ruchu: jeśli krawędź to runway, użyj prędkości pasa (szybszej)
+            edge_type = self.model.graph.get_edge_type(self.current_node, target_node)
+            if edge_type == "runway":
+                movement_type = "landing"  # Na pasie poruszamy się szybciej
+            else:
+                movement_type = self.movement_controller.get_movement_type_for_state(self.state)
             self.movement_duration = self.movement_controller.calculate_movement_time(distance, movement_type)
             
             # Ustaw parametry ruchu
@@ -265,10 +290,18 @@ class Airplane(Agent):
     def _finish_movement(self):
         """Kończy ruch i aktualizuje pozycję"""
         if self.position.target_node:
+            # Zwolnij krawędź i poprzedni węzeł po zakończeniu ruchu
+            prev_node = self.current_node
+            finished_target = self.position.target_node
             self.current_node = self.position.target_node
             target_pos = self.model.graph.get_node_position(self.position.target_node)
             if target_pos:
                 self.position.x, self.position.y = target_pos
+            if prev_node is not None:
+                # Zwolnij krawędź
+                self.model.segment_manager.release_edge(prev_node, finished_target, self.unique_id, self.model.step_count)
+                # Zwolnij poprzedni węzeł (teraz jesteśmy już w docelowym)
+                self.model.segment_manager.release_node(prev_node, self.unique_id, self.model.step_count)
         
         self.is_moving = False
         self.position.progress = 0.0

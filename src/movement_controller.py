@@ -18,8 +18,8 @@ class MovementController:
         # Prędkości w jednostkach na tick (dostosowane do skali lotniska)
         self.speeds = {
             "taxiing": 0.5,      # Wolny ruch taxi
-            "landing": 1.0,      # Szybki ruch podczas lądowania
-            "departing": 1.0,    # Szybki ruch podczas startu
+            "landing": 4.0,      # Szybki ruch podczas lądowania
+            "departing":4.0,    # Szybki ruch podczas startu
             "holding": 0.0,      # Bez ruchu podczas oczekiwania
             "at_stand": 0.0      # Bez ruchu na stanowisku
         }

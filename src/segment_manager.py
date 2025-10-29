@@ -39,6 +39,25 @@ class SegmentManager:
         self.reservation_counter = 0
         self.model = model  # Referencja do modelu
         
+        # Rezerwacje krawędzi (bez wymijania) - klucz jako krawędź nieskierowana
+        # edge_key = (min(u,v), max(u,v)) -> List[SegmentReservation]
+        self.edge_reservations: Dict[Tuple[int, int], List[SegmentReservation]] = {}
+        
+        # Rezerwacje węzłów (tylko 1 samolot w węźle) - node_id -> List[SegmentReservation]
+        self.node_reservations: Dict[int, List[SegmentReservation]] = {}
+
+        # Zestaw węzłów należących do pasa startowego (na podstawie krawędzi typu 'runway')
+        self.runway_nodes: set[int] = set()
+        if self.model is not None and hasattr(self.model, "graph"):
+            try:
+                for u, v, data in self.model.graph.graph.edges(data=True):
+                    if data.get("type") == "runway":
+                        self.runway_nodes.add(int(u))
+                        self.runway_nodes.add(int(v))
+            except Exception:
+                # W razie problemów z odczytem grafu pozostaw pusty zestaw
+                self.runway_nodes = set()
+        
     def set_airplane_priority(self, airplane_id: int, priority: int):
         """Ustawia priorytet samolotu"""
         self.airplane_priorities[airplane_id] = priority
@@ -94,25 +113,43 @@ class SegmentManager:
         return True, None
     
     def _is_runway_segment(self, segment_id: int) -> bool:
-        """Sprawdza czy segment jest częścią pasa startowego"""
-        # Węzły pasa startowego: 1 (RWY_07), 2 (RWY_25)
-        return segment_id in [1, 2]
+        """Sprawdza czy dany węzeł leży na pasie startowym (jako koniec krawędzi typu 'runway')."""
+        if not self.runway_nodes and self.model is not None and hasattr(self.model, "graph"):
+            # Spróbuj zbudować ponownie (np. gdy graf był później gotowy)
+            try:
+                for u, v, data in self.model.graph.graph.edges(data=True):
+                    if data.get("type") == "runway":
+                        self.runway_nodes.add(int(u))
+                        self.runway_nodes.add(int(v))
+            except Exception:
+                return False
+        return segment_id in self.runway_nodes
     
     def _request_runway_segment(self, segment_id: int, airplane_id: int, 
                               duration: int, current_time: int) -> Tuple[bool, Optional[str]]:
         """Specjalna logika rezerwacji pasa startowego - tylko 1 samolot naraz"""
-        # Sprawdź czy jakikolwiek samolot już używa pasa startowego (oba końce)
-        for seg_id in [1, 2]:  # Sprawdź oba końce pasa
+        # Sprawdź czy jakikolwiek samolot już używa pasa startowego (dowolny węzeł z pasa)
+        for seg_id in list(self.runway_nodes):
             if seg_id in self.reservations:
                 for reservation in self.reservations[seg_id]:
                     # Sprawdź czy rezerwacja jest aktywna
                     if reservation.start_time <= current_time <= reservation.end_time:
                         return False, reservation.airplane_id
         
-        # Sprawdź też czy jakikolwiek samolot ma current_node na pasie
-        for airplane in self.model.airplanes:
-            if airplane.current_node in [1, 2] and airplane.unique_id != airplane_id:
-                return False, airplane.unique_id
+        # Sprawdź też czy jakikolwiek samolot jest na pasie (stoi lub porusza się po krawędzi runway)
+        if self.model is not None:
+            for airplane in self.model.airplanes:
+                if airplane.unique_id == airplane_id:
+                    continue
+                # Stoi na węźle należącym do pasa
+                if getattr(airplane, "current_node", None) in self.runway_nodes:
+                    return False, airplane.unique_id
+                # Porusza się po krawędzi i krawędź to runway
+                if getattr(airplane, "is_moving", False):
+                    u = getattr(airplane.position, "current_node", None)
+                    v = getattr(airplane.position, "target_node", None)
+                    if u is not None and v is not None and self.model.graph.get_edge_type(u, v) == "runway":
+                        return False, airplane.unique_id
         
         # Pas wolny - dodaj rezerwację
         if segment_id not in self.reservations:
@@ -175,6 +212,90 @@ class SegmentManager:
         if segment_id in self.reservations:
             self.reservations[segment_id] = [
                 r for r in self.reservations[segment_id] 
+                if not (r.airplane_id == airplane_id and r.start_time <= current_time <= r.end_time)
+            ]
+
+    def _edge_key(self, u: int, v: int) -> Tuple[int, int]:
+        return (u, v) if u <= v else (v, u)
+
+    def request_node(self, node_id: int, airplane_id: int, duration: int, current_time: int) -> Tuple[bool, Optional[int]]:
+        """Rezerwuje węzeł (tylko 1 samolot w węźle).
+        Zwraca (True, None) albo (False, blocking_airplane_id)."""
+        if node_id not in self.node_reservations:
+            self.node_reservations[node_id] = []
+        
+        req_start = current_time
+        req_end = current_time + duration
+        
+        # Sprawdź czy węzeł jest wolny
+        for res in self.node_reservations[node_id]:
+            if not (req_end <= res.start_time or req_start >= res.end_time):
+                return False, res.airplane_id
+        
+        # Dodaj rezerwację węzła
+        reservation = SegmentReservation(segment_id=node_id, airplane_id=airplane_id,
+                                         start_time=req_start, end_time=req_end,
+                                         priority=self.airplane_priorities.get(airplane_id, 1))
+        self.node_reservations[node_id].append(reservation)
+        return True, None
+    
+    def release_node(self, node_id: int, airplane_id: int, current_time: int):
+        """Zwalnia rezerwację węzła."""
+        if node_id in self.node_reservations:
+            self.node_reservations[node_id] = [
+                r for r in self.node_reservations[node_id]
+                if not (r.airplane_id == airplane_id and r.start_time <= current_time <= r.end_time)
+            ]
+
+    def request_edge_with_no_passing(self, u: int, v: int, airplane_id: int,
+                                     duration: int, current_time: int) -> Tuple[bool, Optional[int]]:
+        """Rezerwuje krawędź (u,v) i węzeł docelowy v bez możliwości wymijania.
+        Zwraca (True, None) albo (False, blocking_airplane_id)."""
+        key = self._edge_key(u, v)
+
+        # Najpierw sprawdź węzeł docelowy - czy jest wolny
+        node_ok, node_blocker = self.request_node(v, airplane_id, duration, current_time)
+        if not node_ok:
+            return False, node_blocker
+
+        # Specjalna logika pasa: jeśli to krawędź runway, blokuj cały pas
+        edge_type = None
+        if self.model is not None:
+            edge_type = self.model.graph.get_edge_type(u, v)
+        if edge_type == "runway":
+            # wykorzystaj logikę _request_runway_segment
+            ok, blocker = self._request_runway_segment(v, airplane_id, duration, current_time)
+            if not ok:
+                # Cofnij rezerwację węzła
+                self.release_node(v, airplane_id, current_time)
+                return False, blocker
+
+        if key not in self.edge_reservations:
+            self.edge_reservations[key] = []
+
+        req_start = current_time
+        req_end = current_time + duration
+
+        # Nie pozwalaj na nakładanie na tej krawędzi
+        for res in self.edge_reservations[key]:
+            if not (req_end <= res.start_time or req_start >= res.end_time):
+                # Cofnij rezerwację węzła
+                self.release_node(v, airplane_id, current_time)
+                return False, res.airplane_id
+
+        # Dodaj rezerwację krawędzi
+        reservation = SegmentReservation(segment_id=-1, airplane_id=airplane_id,
+                                         start_time=req_start, end_time=req_end,
+                                         priority=self.airplane_priorities.get(airplane_id, 1))
+        self.edge_reservations[key].append(reservation)
+        return True, None
+
+    def release_edge(self, u: int, v: int, airplane_id: int, current_time: int):
+        """Zwalnia rezerwację krawędzi (u,v) dla danego samolotu."""
+        key = self._edge_key(u, v)
+        if key in self.edge_reservations:
+            self.edge_reservations[key] = [
+                r for r in self.edge_reservations[key]
                 if not (r.airplane_id == airplane_id and r.start_time <= current_time <= r.end_time)
             ]
     

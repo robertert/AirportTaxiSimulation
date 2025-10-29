@@ -2,10 +2,10 @@ from,to,type,length,bidirectional
 8,10,runway,18.0,True
 1,8,runway,23.0,True
 2,10,runway,23.0,True
-1,5,runway_entry,7.0,True
-2,11,runway_entry,7.0,True
-9,10,runway_exit,7.0,True
-7,8,runway_exit,7.0,True
+5,1,runway_entry,7.0,False
+2,11,runway_entry,7.0,False
+10,9,runway_exit,7.0,False
+8,7,runway_exit,7.0,False
 11,2,taxiway,7.0,True
 11,37,taxiway,6.0,True
 37,36,taxiway,8.0,True
