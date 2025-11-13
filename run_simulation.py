@@ -46,7 +46,7 @@ def main():
     print("=" * 50)
     
     # Parametry symulacji
-    num_arriving_airplanes = 3  # Początkowa liczba samolotów przybywających
+    num_arriving_airplanes = 6  # Początkowa liczba samolotów przybywających
     wind_direction = "07"  # Kierunek wiatru: "07" lub "25"
     arrival_rate = 0.00  # Prawdopodobieństwo pojawienia się nowego samolotu
     
