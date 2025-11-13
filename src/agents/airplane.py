@@ -35,6 +35,7 @@ class Airplane(Agent):
         self.priority = 1  # Priorytet samolotu (wyższa liczba = wyższy priorytet)
         self.wait_time = 0  # Czas oczekiwania na segment
         self.max_wait_time = 5  # Maksymalny czas oczekiwania przed prośbą o arbitraż
+        self.hold_progress_limit = None  # Limit postępu do zatrzymania się przed segmentem
         
         # System płynnego ruchu
         self.position = Position(0.0, 0.0)  # Aktualna pozycja z interpolacją
@@ -328,6 +329,20 @@ class Airplane(Agent):
         if not self.is_moving:
             return
         
+        target = self.position.target_node
+        if target is not None:
+            node_busy = not self.model.segment_manager.request_node(target, self.unique_id)
+            
+            if node_busy:
+                if self.hold_progress_limit is None:
+                    self.hold_progress_limit = 0.85
+
+                if self.position.progress >= self.hold_progress_limit:
+                    return
+            else:
+                if self.hold_progress_limit is not None:
+                    self.hold_progress_limit = None
+
         # Oblicz postęp ruchu
         elapsed_time = self.model.step_count - self.movement_start_time
         progress = min(1.0, elapsed_time / self.movement_duration)
@@ -375,8 +390,37 @@ class Airplane(Agent):
         return True
     
     def get_position(self):
-        """Zwraca pozycję samolotu z interpolacją"""
-        return (self.position.x, self.position.y)
+        """Zwraca pozycję samolotu z interpolacją + wizualna kolejka przy entry/exit."""
+        x, y = self.position.x, self.position.y
+
+        if self.current_node is not None:
+            same_node_planes = [
+                a for a in self.model.airplanes
+                if a is not self and a.current_node == self.current_node
+            ]
+
+            if same_node_planes:
+                all_planes = sorted(same_node_planes + [self], key=lambda a: a.unique_id)
+                idx = all_planes.index(self)
+
+                direction = 0
+                try:
+                    G = self.model.graph.graph
+                    neighbors = G[self.current_node]
+                    has_exit = any(data.get("type") == "runway_exit" for _, data in neighbors.items())
+                    has_entry = any(data.get("type") == "runway_entry" for _, data in neighbors.items())
+                    if has_exit:
+                        direction = 1
+                    elif has_entry:
+                        direction = -1
+                except Exception:
+                    direction = 0
+
+                offset = 0.8
+                y += direction * idx * offset
+
+        return (x, y)
+
     
     def get_color(self):
         """Zwraca kolor dla wizualizacji"""
