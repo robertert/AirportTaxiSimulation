@@ -25,6 +25,7 @@ from,to,type,length,bidirectional,desc
 34,45,apron_link,2.0,True
 45,46,apron_link,1.0,True
 46,47,apron_link,1.0,True
+47,11,apron_link,1.0,True
 38,13,stand_link,1.0,True
 39,14,stand_link,1.0,True,Stand A
 39,28,stand_link,1.0,True,Stand B
