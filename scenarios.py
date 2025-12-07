@@ -1,6 +1,6 @@
 import os
 import random as rnd
-import networkx as nx
+import pandas as pd
 
 LAYOUTS = {
     "Standard (Prawa strona)": "layout_standard",
@@ -12,27 +12,47 @@ LAYOUTS = {
 def get_layout_path(layout_name):
     """Zwraca ścieżkę do folderu z wybranym układem"""
     folder_name = LAYOUTS.get(layout_name, "layout_standard")
-    return os.path.join("data_map", folder_name)
+    return os.path.join("data_map", folder_name) 
 
 def get_layout_names():
     return list(LAYOUTS.keys())
 
-
-def apply_maintenance(model, mode):
+def get_gates_list(layout_name):
     """
-    Usuwa węzły gate'ów z grafu w zależności od wybranego trybu awarii.
-    Działa uniwersalnie dla każdego layoutu.
+    Zwraca listę słowników {'value': id, 'label': name} dla wszystkich gate'ów w danym layoutcie.
+    Używane do wypełnienia listy w Solara.
+    """
+    path = get_layout_path(layout_name)
+    nodes_file = os.path.join(path, "nodes.csv")
+    
+    if not os.path.exists(nodes_file):
+        return []
+        
+    try:
+        df = pd.read_csv(nodes_file)
+        stands = df[df['type'] == 'stand']
+        return [{"value": row['id'], "label": f"{row['name']} (ID: {row['id']})"} for _, row in stands.iterrows()]
+    except Exception as e:
+        print(f"Błąd odczytu gate'ów: {e}")
+        return []
+
+def apply_maintenance(model, mode, manual_ids=[]):
+    """
+    Usuwa węzły gate'ów.
+    Dodano argument manual_ids dla ręcznego wyboru.
     """
     if mode == "Brak awarii":
         return
 
     stands = [n for n, d in model.graph.graph.nodes(data=True) if d.get('type') == 'stand']
-    
     stands_sorted_x = sorted(stands, key=lambda n: model.graph.graph.nodes[n]['x'])
     
     to_close = []
 
-    if mode == "Losowa awaria (3 gate'y)":
+    if mode == "Wybór ręczny":
+        to_close = [sid for sid in manual_ids if sid in stands]
+
+    elif mode == "Losowa awaria (3 gate'y)":
         if len(stands) > 3:
             to_close = rnd.sample(stands, 3)
             

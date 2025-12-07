@@ -144,43 +144,56 @@ def InfoPanel(model, update_trigger=0):
 
 @solara.component
 def ControlPanel(current_model, step_trigger, is_playing, simulation_speed):
-    selected_layout = solara.use_reactive("Standard (Lewa strona)")
+    selected_layout = solara.use_reactive("Standard (Prawa strona)")
     maintenance_mode = solara.use_reactive("Brak awarii")
-
     taxiway_event = solara.use_reactive("Brak utrudnień")
-    event_options = [
-        "Brak utrudnień",
-        "Zamknięty Zjazd D",
-        "Zamknięty Zjazd C",
-        "Zamknięty Wjazd A (Główny 25)",
-        "Zamknięty Wjazd F (Główny 07)"
-    ]
 
-    maintenance_options = [
-        "Brak awarii", "Losowa awaria (3 gate'y)", "Remont połowy sekcji (Co drugi)", 
-        "Awaria zasilania (Pierwsze 5)", "Zamknięta skrajna sekcja"
-    ]
-
+    manual_gates_selected = solara.use_reactive([])
+    
     num_arriving = solara.use_reactive(5)
     wind_direction = solara.use_reactive("25")
     arrival_rate = solara.use_reactive(0.05)
+
+    def load_gate_options():
+        return scenarios.get_gates_list(selected_layout.value)
+    
+    gate_options = solara.use_memo(load_gate_options, dependencies=[selected_layout.value])
+
+    event_options = [
+        "Brak utrudnień", "Zamknięty Zjazd D", "Zamknięty Zjazd C",
+        "Zamknięty Wjazd A (Główny 25)", "Zamknięty Wjazd F (Główny 07)"
+    ]
+
+    maintenance_options = [
+        "Brak awarii", "Wybór ręczny", "Losowa awaria (3 gate'y)", 
+        "Remont połowy sekcji (Co drugi)", "Awaria zasilania (Pierwsze 5)", 
+        "Zamknięta skrajna sekcja"
+    ]
     
     with solara.Card("🛠️ Konfiguracja"):
         solara.Markdown("### 1. Infrastruktura")
         solara.Select(label="Układ Lotniska", value=selected_layout, values=scenarios.get_layout_names())
+        
         solara.Select(label="Status Techniczny (Gate'y)", value=maintenance_mode, values=maintenance_options)
         
-        solara.Select(label="Zdarzenia Drogowe (Pas/Taxi)", value=taxiway_event, values=event_options)
+        if maintenance_mode.value == "Wybór ręczny":
+            solara.Text("Zaznacz gate'y do wyłączenia:", style="font-size: 0.9em; margin-top: 5px")
+            solara.SelectMultiple(
+                label="",
+                values=manual_gates_selected,
+                all_values=[opt['value'] for opt in gate_options],
+            )
+            pass
+
+        solara.Select(label="Zdarzenia Drogowe", value=taxiway_event, values=event_options)
         
         solara.Markdown("---")
-        
         solara.Markdown("### 2. Parametry Ruchu")
         solara.SliderInt("Początkowe samoloty", value=num_arriving, min=0, max=15)
         solara.Select("Kierunek wiatru", value=wind_direction, values=["07", "25"])
         solara.SliderFloat("Częstotliwość przylotów", value=arrival_rate, min=0.0, max=0.5, step=0.01)
         
         solara.Markdown("---")
-        
         solara.Markdown("### 3. Sterowanie")
         solara.SliderFloat("Szybkość (ms)", value=simulation_speed, min=50, max=1000)
         
@@ -190,14 +203,14 @@ def ControlPanel(current_model, step_trigger, is_playing, simulation_speed):
                 selected_layout.value, 
                 maintenance_mode.value,
                 taxiway_event.value,
+                manual_gates_selected.value,
                 num_arriving.value, wind_direction.value, arrival_rate.value
             ))
             
             solara.Button("▶️ Start/Pauza", on_click=lambda: is_playing.set(not is_playing.value))
 
 
-
-def restart_full(current_model, step_trigger, is_playing, layout_name, maint_mode, event_mode, num_arr, wind, rate):
+def restart_full(current_model, step_trigger, is_playing, layout_name, maint_mode, event_mode, manual_gates, num_arr, wind, rate):
     """Tworzy nowy model z pełną konfiguracją"""
     is_playing.set(False)
     
@@ -206,10 +219,11 @@ def restart_full(current_model, step_trigger, is_playing, layout_name, maint_mod
     edges_file = os.path.join(layout_path, "edges.csv")
     
     if not os.path.exists(nodes_file):
+        print("Brak pliku mapy, fallback do standard")
         nodes_file = "data/layout_standard/nodes.csv"
         edges_file = "data/layout_standard/edges.csv"
         
-    print(f"Start: {layout_name} | Maint: {maint_mode} | Event: {event_mode}")
+    print(f"Start: {layout_name} | Maint: {maint_mode} | Gates: {manual_gates}")
     
     new_model = AirportModel(
         num_arriving_airplanes=num_arr,
@@ -220,7 +234,7 @@ def restart_full(current_model, step_trigger, is_playing, layout_name, maint_mod
     )
     new_model.layout_name = layout_name
     
-    scenarios.apply_maintenance(new_model, maint_mode)
+    scenarios.apply_maintenance(new_model, maint_mode, manual_ids=manual_gates)
     scenarios.apply_taxiway_events(new_model, event_mode)
     
     current_model.set(new_model)
@@ -235,7 +249,7 @@ def Page():
     simulation_speed = solara.use_reactive(100.0)
     
     if current_model.value is None:
-        restart_full(current_model, step_trigger, is_playing, "Standard (Lewa strona)", "Brak awarii", "Brak utrudnień", 5, "25", 0.05)
+        restart_full(current_model, step_trigger, is_playing, "Standard (Lewa strona)", "Brak awarii", "Brak utrudnień", [], 5, "25", 0.05)
 
     def worker():
         while True:
