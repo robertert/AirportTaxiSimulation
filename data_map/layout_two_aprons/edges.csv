@@ -1,0 +1,41 @@
+from,to,type,length,bidirectional,desc
+8,10,runway,18.0,True,runway
+1,8,runway,23.0,True,runway
+2,10,runway,23.0,True,runway
+5,1,runway_entry,7.0,False,Taxiway F
+2,11,runway_entry,7.0,False,Taxiway A
+10,9,runway_exit,7.0,False,Taxiway C
+8,7,runway_exit,7.0,False,Taxiway D
+5,7,taxiway,23.0,True,Taxiway B (Seg 1)
+7,150,taxiway,2.0,True,Taxiway B (D -> Trojkat L1)
+150,151,taxiway,4.0,True,Taxiway B (Podstawa Trojkata L)
+151,250,taxiway,4.0,True,Taxiway B (Miedzy plytami)
+250,251,taxiway,4.0,True,Taxiway B (Podstawa Trojkata R)
+251,9,taxiway,4.0,True,Taxiway B (Trojkat R2 -> C)
+9,11,taxiway,23.0,True,Taxiway B (C -> End)
+150,100,apron_link,4.47,True,Trojkat L Ramie 1
+151,100,apron_link,4.47,True,Trojkat L Ramie 2
+100,101,apron_link,2.0,True,Lane L
+101,102,apron_link,2.0,True,Lane L
+102,103,apron_link,2.0,True,Lane L
+250,200,apron_link,4.47,True,Trojkat R Ramie 1
+251,200,apron_link,4.47,True,Trojkat R Ramie 2
+200,201,apron_link,2.0,True,Lane R
+201,202,apron_link,2.0,True,Lane R
+202,203,apron_link,2.0,True,Lane R
+100,111,stand_link,2.5,True,Stand Link
+100,121,stand_link,2.5,True,Stand Link
+101,112,stand_link,2.5,True,Stand Link
+101,122,stand_link,2.5,True,Stand Link
+102,113,stand_link,2.5,True,Stand Link
+102,123,stand_link,2.5,True,Stand Link
+103,114,stand_link,2.5,True,Stand Link
+103,124,stand_link,2.5,True,Stand Link
+200,211,stand_link,2.5,True,Stand Link
+200,221,stand_link,2.5,True,Stand Link
+201,212,stand_link,2.5,True,Stand Link
+201,222,stand_link,2.5,True,Stand Link
+202,213,stand_link,2.5,True,Stand Link
+202,223,stand_link,2.5,True,Stand Link
+203,214,stand_link,2.5,True,Stand Link
+203,224,stand_link,2.5,True,Stand Link

@@ -1,0 +1,41 @@
+id,type,name,x,y,notes
+1,runway_thr,RWY_07,2,27,Threshold runway 07
+2,runway_thr,RWY_25,66,27,Threshold runway 25
+5,taxiway,TWY_F_START,2,20,Początek taxiway F
+7,taxiway,TWY_D_START,25,20,Początek taxiway D
+8,taxiway,TWY_D_END,25,27,Koniec taxiway D
+9,taxiway,TWY_C_START,43,20,Początek taxiway C
+10,taxiway,TWY_C_END,43,27,Koniec taxiway C
+11,taxiway,TWY_A_START,66,20,Początek taxiway A
+38,apron_link,APRON_0,8,14,Droga dojazdowa
+39,stand,STAND_1,8,10,Stand 1
+40,apron_link,APRON_1,10,14,
+41,stand,STAND_2,10,10,Stand 2
+42,apron_link,APRON_2,12,14,
+43,stand,STAND_3,12,10,Stand 3
+44,apron_link,APRON_3,14,14,
+45,stand,STAND_4,14,10,Stand 4
+46,apron_link,APRON_4,16,14,
+47,stand,STAND_5,16,10,Stand 5
+48,apron_link,APRON_5,18,14,
+49,stand,STAND_6,18,10,Stand 6
+50,apron_link,APRON_6,20,14,
+51,stand,STAND_7,20,10,Stand 7
+52,apron_link,APRON_7,22,14,
+53,stand,STAND_8,22,10,Stand 8
+54,apron_link,APRON_8,24,14,Środek szeregu
+55,stand,STAND_9,24,10,Stand 9
+56,apron_link,APRON_9,26,14,
+57,stand,STAND_10,26,10,Stand 10
+58,apron_link,APRON_10,28,14,
+59,stand,STAND_11,28,10,Stand 11
+60,apron_link,APRON_11,30,14,
+61,stand,STAND_12,30,10,Stand 12
+62,apron_link,APRON_12,32,14,
+63,stand,STAND_13,32,10,Stand 13
+64,apron_link,APRON_13,34,14,
+65,stand,STAND_14,34,10,Stand 14
+66,apron_link,APRON_14,36,14,
+67,stand,STAND_15,36,10,Stand 15
+68,apron_link,APRON_15,38,14,Koniec szeregu
+69,stand,STAND_16,38,10,Stand 16

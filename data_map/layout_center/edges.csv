@@ -1,0 +1,44 @@
+from,to,type,length,bidirectional,desc
+8,10,runway,18.0,True,runway
+1,8,runway,23.0,True,runway
+2,10,runway,23.0,True,runway
+5,1,runway_entry,7.0,False,Taxiway F
+2,11,runway_entry,7.0,False,Taxiway A
+10,9,runway_exit,7.0,False,Taxiway C
+8,7,runway_exit,7.0,False,Taxiway D
+5,7,taxiway,23.0,True,Taxiway B (Start to Exit D)
+7,36,taxiway,1.0,True,Taxiway B (Exit D to Triangle Left)
+36,37,taxiway,8.0,True,Taxiway B (Triangle Base)
+37,9,taxiway,9.0,True,Taxiway B (Triangle Right to Exit C)
+9,11,taxiway,23.0,True,Taxiway B (Exit C to End)
+29,36,apron_link,5.656854249492381,True,Triangle Left Leg
+29,37,apron_link,5.656854249492381,True,Triangle Right Leg
+29,38,apron_link,6.0,True
+38,39,apron_link,2.0,True
+39,40,apron_link,1.0,True
+40,41,apron_link,1.0,True
+41,42,apron_link,1.0,True
+42,31,apron_link,2.0,True
+31,43,apron_link,1.4142135623730951,True
+43,44,apron_link,1.0,True
+44,34,apron_link,2.8284271247461903,True
+34,45,apron_link,2.0,True
+45,46,apron_link,1.0,True
+46,47,apron_link,1.0,True
+47,9,apron_link,3.0,True,Right Apron Exit to TWY C
+38,13,stand_link,1.0,True
+39,14,stand_link,1.0,True,Stand A
+39,28,stand_link,1.0,True,Stand B
+40,27,stand_link,1.0,True,Stand C
+40,15,stand_link,1.0,True,Stand D
+41,26,stand_link,1.0,True,Stand E
+42,16,stand_link,1.0,True,Stand F
+42,25,stand_link,1.0,True,Stand G
+31,17,stand_link,1.0,True,Stand H
+31,18,stand_link,1.4142135623730951,True,Stand I
+31,19,stand_link,1.0,True,Stand J
+43,20,stand_link,1.0,True,Stand K
+44,21,stand_link,1.0,True,Stand L
+45,24,stand_link,1.0,True,Stand M
+46,23,stand_link,1.0,True,Stand N
+47,22,stand_link,1.0,True,Stand O
