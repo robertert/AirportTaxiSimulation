@@ -5,6 +5,7 @@ from src.segment_manager import SegmentManager
 from mesa import Model
 from mesa import DataCollector
 import numpy as np
+import pandas as pd
 import os
 
 DEFAULTS = {
@@ -52,7 +53,10 @@ class AirportModel(Model):
         
         self.running = True
         self.step_count = 0
-        
+
+        # Wczytanie danych z pliku CSV do df
+        self.schedule_data = pd.read_csv('data/prepared_arrivals_summary_1_12_2025.csv')
+
         # Tworzenie początkowych samolotów przybywających
         self.create_initial_arrivals()
 
@@ -121,6 +125,17 @@ class AirportModel(Model):
         """Krok symulacji"""
         self.step_count += 1
         print(self.segment_manager.airport_queue)
+
+        # Sprawdzamy czy w TYM kroku (step_count) coś przylatuje wg schedule_data
+        flights_now = self.schedule_data[self.schedule_data['step_landed'] == self.step_count]
+        
+        for _, flight in flights_now.iterrows():
+            # dodajemy samolot do symulacji
+            airplane = Airplane(self, self.next_airplane_id, airplane_type="arrival")
+            airplane.current_node = None
+            self.airplanes.append(airplane)
+            self.next_airplane_id += 1
+
         # Czasami spawuj nowe samoloty
         self.spawn_new_arrival()
         # Wyczyść stare rezerwacje
