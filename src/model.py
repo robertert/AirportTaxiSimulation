@@ -3,6 +3,8 @@ from src.agents.airplane import Airplane
 from src.agents.runway_controler import RunwayController
 from src.segment_manager import SegmentManager
 from mesa import Model
+from mesa import DataCollector
+import numpy as np
 import os
 
 DEFAULTS = {
@@ -48,11 +50,22 @@ class AirportModel(Model):
         self.airplanes = []
         self.next_airplane_id = 2  # Zaczynamy od 2 (1 jest dla kontrolera)
         
+        self.running = True
+        self.step_count = 0
+        
         # Tworzenie początkowych samolotów przybywających
         self.create_initial_arrivals()
 
-        self.running = True
-        self.step_count = 0
+
+        # LISTA NA CZASY OBSŁUGI (dla samolotów, które już odleciały)
+        self.completed_flight_times = []
+
+        self.datacollector = DataCollector(
+            model_reporters={
+                # Obliczamy średnią z listy completed_flight_times
+                "Avg_Service_Time": lambda m: np.mean(m.completed_flight_times) if m.completed_flight_times else 0
+            }
+        )
 
     def create_initial_arrivals(self):
         """Tworzy początkowe samoloty przybywające do lądowania"""
@@ -122,6 +135,9 @@ class AirportModel(Model):
         
         # Loguj stan wszystkich samolotów
         #self.log_airplanes_status()
+
+        # Zbieraj dane
+        self.datacollector.collect(self)
 
 
     def portray_cell(cell_type):

@@ -192,6 +192,35 @@ def ControlPanel(current_model, step_count, is_playing, simulation_speed):
             solara.Button("▶️ Start" if not is_playing.value else "⏸️ Pauza", 
                          on_click=lambda: is_playing.set(not is_playing.value))
             
+@solara.component
+def ServiceTimeChart(model, update_trigger=0):
+    # Wymuszenie odświeżenia
+    _ = update_trigger
+    
+    # Pobieramy dane z DataCollectora
+    # Zwraca DataFrame z historią wszystkich kroków
+    df = model.datacollector.get_model_vars_dataframe()
+    
+    fig = Figure(figsize=(10, 5))
+    ax = fig.add_subplot(111)
+    
+    if "Avg_Service_Time" in df.columns and not df.empty:
+        # Rysujemy linię
+        # df.index to numer kroku, df["Avg_Service_Time"] to wartość
+        ax.plot(df.index, df["Avg_Service_Time"], color='purple', linewidth=2)
+        
+        # Ostatnia wartość jako tekst
+        last_val = df["Avg_Service_Time"].iloc[-1]
+        ax.set_title(f'Średni czas obsługi: {last_val:.1f} kroków', fontsize=12, fontweight='bold')
+    else:
+        ax.set_title('Oczekiwanie na pierwszy odlot...', fontsize=12)
+        
+    ax.set_xlabel('Czas symulacji (kroki)')
+    ax.set_ylabel('Średnia liczba kroków')
+    ax.grid(True, alpha=0.3)
+    
+    solara.FigureMatplotlib(fig)
+            
 
 def reset_simulation(num_arriving, wind_dir, arr_rate, current_model, step_count, is_playing):
     """Resetuje symulację"""
@@ -298,6 +327,7 @@ def Page():
                     # Używamy viz_trigger do odświeżania wykresów
                     AirportNetworkViz(current_model.value, update_trigger=viz_trigger.value)
                     StatesChart(current_model.value, update_trigger=viz_trigger.value)
+                    ServiceTimeChart(current_model.value, update_trigger=viz_trigger.value)
                 
                 with solara.Column():
                     # InfoPanel też podpinamy pod rzadsze odświeżanie

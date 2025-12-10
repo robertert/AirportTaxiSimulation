@@ -47,6 +47,9 @@ class Airplane(Agent):
         self.pushback_started_at: Optional[int] = None
         self.runway_entry_node: Optional[int] = None
         self.departure_hold_node: Optional[int] = None
+
+        # czas powstania w kolejce (na potrzeby wykresu)
+        self.birth_time = model.step_count
         
     def step(self):
         print(f"Airplane {self.unique_id} state: {self.state}")
@@ -247,6 +250,8 @@ class Airplane(Agent):
             if self.current_node is not None:
                 self.model.segment_manager.release_node(self.current_node, self.unique_id)
             if self in self.model.airplanes:
+                duration = self.model.step_count - self.birth_time
+                self.model.completed_flight_times.append(duration)
                 self.model.airplanes.remove(self)
     
     def _move_along_path(self):
