@@ -1,0 +1,37 @@
+id,type,name,x,y,notes
+1,runway_thr,RWY_07,2,27,Threshold runway 07
+2,runway_thr,RWY_25,66,27,Threshold runway 25
+5,taxiway,TWY_F_START,2,20,Początek taxiway F
+7,taxiway,TWY_D_START,25,20,Początek taxiway D
+8,taxiway,TWY_D_END,25,27,Koniec taxiway D
+9,taxiway,TWY_C_START,43,20,Początek taxiway C
+10,taxiway,TWY_C_END,43,27,Koniec taxiway C
+11,taxiway,TWY_A_START,66,20,Początek taxiway A
+150,connector,TRIANGLE_L_1,27,20,Baza trojkata L (Lewa)
+151,connector,TRIANGLE_L_2,31,20,Baza trojkata L (Prawa)
+100,apron_link,LANE_L_START,29,16,Wierzcholek trojkata L
+101,apron_link,LANE_L_1,29,14,Droga L
+102,apron_link,LANE_L_2,29,12,
+103,apron_link,LANE_L_3,29,10,
+111,stand,STAND_L_1,26.5,16,Kolumna 1 (Zewn)
+112,stand,STAND_L_2,26.5,14,
+113,stand,STAND_L_3,26.5,12,
+114,stand,STAND_L_4,26.5,10,
+121,stand,STAND_L_5,31.5,16,Kolumna 2 (Wewn)
+122,stand,STAND_L_6,31.5,14,
+123,stand,STAND_L_7,31.5,12,
+124,stand,STAND_L_8,31.5,10,
+250,connector,TRIANGLE_R_1,35,20,Baza trojkata R (Lewa)
+251,connector,TRIANGLE_R_2,39,20,Baza trojkata R (Prawa)
+200,apron_link,LANE_R_START,37,16,Wierzcholek trojkata R
+201,apron_link,LANE_R_1,37,14,Droga R
+202,apron_link,LANE_R_2,37,12,
+203,apron_link,LANE_R_3,37,10,
+211,stand,STAND_R_1,34.5,16,Kolumna 3 (Wewn)
+212,stand,STAND_R_2,34.5,14,
+213,stand,STAND_R_3,34.5,12,
+214,stand,STAND_R_4,34.5,10,
+221,stand,STAND_R_5,39.5,16,Kolumna 4 (Zewn)
+222,stand,STAND_R_6,39.5,14,
+223,stand,STAND_R_7,39.5,12,
+224,stand,STAND_R_8,39.5,10,

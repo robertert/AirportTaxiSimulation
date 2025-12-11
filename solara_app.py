@@ -3,45 +3,32 @@ Interaktywna wizualizacja symulacji lotniska z Mesa i Solara
 """
 import solara
 from matplotlib.figure import Figure
-from src.model import AirportModel
+from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
 import time
-from matplotlib.collections import LineCollection
-import numpy as np
+import sys
+import os
+import scenarios
 
-
-# Brak globalnych zmiennych - wszystko jest w komponencie Page
-
-
-def create_initial_model(num_arriving, wind_direction, arrival_rate):
-    """Tworzy nowy model"""
-    return AirportModel(
-        num_arriving_airplanes=num_arriving,
-        wind_direction=wind_direction,
-        arrival_rate=arrival_rate
-    )
-
-
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+from src.model import AirportModel
 
 @solara.component
 def AirportNetworkViz(model, update_trigger=0):
-    # Wymuszamy reaktywność
     _ = update_trigger
     
-    # 1. OPTYMALIZACJA: Mniejszy rozmiar i DPI dla szybszego przesyłania
-    fig = Figure(figsize=(10, 8), dpi=80) 
+    fig = Figure(figsize=(10, 4.2), dpi=80) 
     ax = fig.add_subplot(111)
+
+    fig.subplots_adjust(left=0, right=1, top=0.90, bottom=0.05)
+
+    ax.set_xlim(-5, 75)
+    ax.set_ylim(-5, 32)
     
-    # Ustawienia wykresu
-    ax.set_xlim(-2, 71)
-    ax.set_ylim(-2, 38)
     ax.set_aspect('equal')
-    ax.set_title(f'Symulacja (Krok: {model.step_count})', fontsize=12, fontweight='bold')
-    
-    # Wyłączamy osie i siatkę dla wydajności (opcjonalne, ale pomaga)
+    ax.set_title(f'Layout: {getattr(model, "layout_name", "Standard")} | Krok: {model.step_count}', fontsize=10)
     ax.axis('off') 
     
-    # --- RYSOWANIE KRAWĘDZI (WSADOWE - BARDZO SZYBKIE) ---
     edge_types = {
         'runway': {'color': '#2c2c2c', 'width': 4, 'lines': []},
         'taxiway': {'color': '#808080', 'width': 2, 'lines': []},
@@ -50,39 +37,30 @@ def AirportNetworkViz(model, update_trigger=0):
         'other': {'color': '#FF8C00', 'width': 1, 'lines': []}
     }
     
-    # Szybkie pobieranie pozycji bez wielokrotnego wyszukiwania w grafie
-    # Zakładamy, że struktura grafu się nie zmienia (cache'owanie pozycji)
-    # Jeśli węzły są statyczne, można by to obliczyć raz poza funkcją, ale tu zrobimy to lokalnie
     pos = {n: (d['x'], d['y']) for n, d in model.graph.graph.nodes(data=True)}
     
     for u, v, data in model.graph.graph.edges(data=True):
         if u in pos and v in pos:
             p1 = pos[u]
             p2 = pos[v]
-            etype = data.get('type', 'taxi')
-            
-            # Przypisanie do odpowiedniej kategorii
+            etype = data.get('type', 'other')
             key = 'other'
             if etype == 'runway': key = 'runway'
             elif etype == 'taxiway': key = 'taxiway'
             elif etype == 'stand_link': key = 'stand_link'
             elif etype == 'apron_link': key = 'apron_link'
-            
             edge_types[key]['lines'].append((p1, p2))
 
-    # Rysujemy kolekcje linii (dużo szybsze niż plot w pętli)
     for etype, styles in edge_types.items():
         if styles['lines']:
             lc = LineCollection(styles['lines'], colors=styles['color'], 
                                 linewidths=styles['width'], alpha=0.8, zorder=1)
             ax.add_collection(lc)
 
-    # --- RYSOWANIE WĘZŁÓW (WSADOWE) ---
     node_groups = {
         "runway_thr": {"x": [], "y": [], "c": "#2c2c2c", "s": 150, "m": 's'},
         "stand":      {"x": [], "y": [], "c": "#32CD32", "s": 100, "m": 'o'},
         "apron":      {"x": [], "y": [], "c": "#4169E1", "s": 120, "m": 'D'},
-        "taxiway":    {"x": [], "y": [], "c": "#808080", "s": 60,  "m": '^'}, # Mniejsze taxiway
     }
     
     for n, data in model.graph.graph.nodes(data=True):
@@ -94,69 +72,54 @@ def AirportNetworkViz(model, update_trigger=0):
     for ntype, style in node_groups.items():
         if style["x"]:
             ax.scatter(style["x"], style["y"], c=style["c"], s=style["s"], 
-                      marker=style["m"], edgecolors='black', linewidth=0.5, zorder=2, alpha=0.7)
+                       marker=style["m"], edgecolors='black', linewidth=0.5, zorder=2, alpha=0.7)
+            
+    map_labels = [
+        {"text": "F", "x": 3, "y": 23},
+        {"text": "D", "x": 26, "y": 23},
+        {"text": "C", "x": 44, "y": 23},
+        {"text": "A", "x": 65, "y": 23},
+    ]
+    for label in map_labels:
+        ax.text(label["x"], label["y"], label["text"],
+                fontsize=8, color='#444444', fontweight='bold',
+                bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.6),
+                zorder=3)
 
-    # --- RYSOWANIE SAMOLOTÓW (ZOSTAWIAMY PĘTLĘ, BO JEST ICH MAŁO I SĄ SKOMPLIKOWANE) ---
-    waiting_offset = 0
-    
-    # Prealokacja list dla batchowania samolotów (opcjonalnie, tu zostawiamy pętlę dla czytelności logiki)
     for airplane in model.airplanes:
         if airplane.state == "waiting_landing" and airplane.current_node is None:
-            x, y = -1, 30 - waiting_offset
-            waiting_offset += 2
+             pass 
         else:
             x, y = airplane.get_position()
-            
-        color = airplane.get_color()
-        # Uproszczona logika markerów
-        marker = 'v' if airplane.state == "landing" else 'o'
-        
-        # Rysujemy samolot
-        ax.scatter(x, y, c=color, s=180, marker=marker, 
-                  edgecolors='black', linewidth=1.5, zorder=5)
-        
-        # OPTYMALIZACJA: Tekst jest bardzo kosztowny w Matplotlib.
-        # Rysujemy go tylko dla samolotów, prostszą metodą (bez boxa jeśli tnie)
-        ax.text(x, y-0.8, f'{airplane.unique_id}', 
-                fontsize=8, fontweight='bold', ha='center', va='top', zorder=6)
+            color = airplane.get_color()
+            marker = 'v' if airplane.state == "landing" else 'o'
+            ax.scatter(x, y, c=color, s=180, marker=marker, edgecolors='black', zorder=5)
+            ax.text(x, y-1.5, f'{airplane.unique_id}', fontsize=7, ha='center', zorder=6)
 
     solara.FigureMatplotlib(fig)
 
-
 @solara.component
 def StatesChart(model, update_trigger=0):
-    """Wykres słupkowy ze stanami samolotów"""
-    # update_trigger to zależność do triggerowania re-renderu
-    _ = update_trigger  # Użyj wartości aby komponent był reaktywny
-    fig = Figure(figsize=(10, 5))
+    _ = update_trigger
+    fig = Figure(figsize=(8, 5), dpi=80)
+    fig.subplots_adjust(bottom=0.15, top=0.85, left=0.1, right=0.95)
+    
     ax = fig.add_subplot(111)
     
-    states = {
-        'Oczek.\nlądow.': len([a for a in model.airplanes if a.state == 'waiting_landing']),
-        'Lądują': len([a for a in model.airplanes if a.state == 'landing']),
-        'Taxi→\nstand': len([a for a in model.airplanes if a.state == 'taxiing_to_stand']),
-        'Na\nstanow.': len([a for a in model.airplanes if a.state == 'at_stand']),
-        'Taxi→\npas': len([a for a in model.airplanes if a.state == 'taxiing_to_runway']),
-        'Oczek.\nstart': len([a for a in model.airplanes if a.state == 'waiting_departure']),
-        'Startują': len([a for a in model.airplanes if a.state == 'departing']),
+    states_count = {
+        'Land': len([a for a in model.airplanes if a.state == 'landing']),
+        'Taxi': len([a for a in model.airplanes if "taxi" in a.state]),
+        'Stand': len([a for a in model.airplanes if a.state == 'at_stand']),
+        'Queue': len(model.runway_controller.runway_queue)
     }
     
-    colors = ['blue', 'red', 'orange', 'green', 'yellow', 'purple', 'magenta']
-    bars = ax.bar(states.keys(), states.values(), color=colors, edgecolor='black', linewidth=1.5)
+    ax.bar(states_count.keys(), states_count.values(), color=['red', 'orange', 'green', 'blue'], alpha=0.7)
+    ax.set_title("Statystyki", fontsize=10)
+    ax.tick_params(axis='both', labelsize=9)
     
-    ax.set_ylabel('Liczba samolotów', fontsize=12, fontweight='bold')
-    ax.set_title('Stany samolotów', fontsize=14, fontweight='bold')
-    ax.set_ylim(0, max(states.values()) + 2 if states.values() else 10)
-    ax.grid(axis='y', alpha=0.3)
-    
-    # Dodaj wartości nad słupkami
-    for bar in bars:
-        height = bar.get_height()
-        if height > 0:
-            ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                   f'{int(height)}',
-                   ha='center', va='bottom', fontsize=11, fontweight='bold')
-    
+    for i, v in enumerate(states_count.values()):
+        ax.text(i, v + 0.1, str(v), ha='center', fontsize=9, fontweight='bold')
+        
     solara.FigureMatplotlib(fig)
 
 
@@ -240,97 +203,152 @@ def step_simulation(current_model, step_count):
 @solara.component
 def InfoPanel(model, update_trigger=0):
     """Panel informacyjny"""
-    # update_trigger to zależność do triggerowania re-renderu
-    _ = update_trigger  # Użyj wartości aby komponent był reaktywny
+    _ = update_trigger  
+    
     with solara.Card("📊 Status symulacji"):
         runway_status = "🔴 ZAJĘTY" if model.runway_controller.is_busy else "🟢 WOLNY"
         queue_length = model.runway_controller.get_runway_queue_length()
         
         solara.Markdown(f"""
 **Krok symulacji:** {model.step_count}
-
 **Wiatr:** RWY {model.wind_direction}  
 **Aktywny pas:** {model.runway_controller.active_runway}
-
+---
 **Status pasa:** {runway_status}  
-**Długość kolejki:** {queue_length}
-
+**Długość kolejki do pasa:** {queue_length}
+---
 **Samolotów w symulacji:** {len(model.airplanes)}
         """)
 
 @solara.component
+def ControlPanel(current_model, step_trigger, is_playing, simulation_speed):
+    selected_layout = solara.use_reactive("Standard (Prawa strona)")
+    maintenance_mode = solara.use_reactive("Brak awarii")
+    taxiway_event = solara.use_reactive("Brak utrudnień")
+
+    manual_gates_selected = solara.use_reactive([])
+    
+    num_arriving = solara.use_reactive(5)
+    wind_direction = solara.use_reactive("25")
+    arrival_rate = solara.use_reactive(0.05)
+
+    def load_gate_options():
+        return scenarios.get_gates_list(selected_layout.value)
+    
+    gate_options = solara.use_memo(load_gate_options, dependencies=[selected_layout.value])
+
+    event_options = [
+        "Brak utrudnień", "Zamknięty Zjazd D", "Zamknięty Zjazd C",
+        "Zamknięty Wjazd A (Główny 25)", "Zamknięty Wjazd F (Główny 07)"
+    ]
+
+    maintenance_options = [
+        "Brak awarii", "Wybór ręczny", "Losowa awaria (3 gate'y)", 
+        "Remont połowy sekcji (Co drugi)", "Awaria zasilania (Pierwsze 5)", 
+        "Zamknięta skrajna sekcja"
+    ]
+    
+    with solara.Card("🛠️ Konfiguracja"):
+        solara.Markdown("### 1. Infrastruktura")
+        solara.Select(label="Układ Lotniska", value=selected_layout, values=scenarios.get_layout_names())
+        
+        solara.Select(label="Status Techniczny (Gate'y)", value=maintenance_mode, values=maintenance_options)
+        
+        if maintenance_mode.value == "Wybór ręczny":
+            solara.Text("Zaznacz gate'y do wyłączenia:", style="font-size: 0.9em; margin-top: 5px")
+            solara.SelectMultiple(
+                label="",
+                values=manual_gates_selected,
+                all_values=[opt['value'] for opt in gate_options],
+            )
+            pass
+
+        solara.Select(label="Zdarzenia Drogowe", value=taxiway_event, values=event_options)
+        
+        solara.Markdown("---")
+        solara.Markdown("### 2. Parametry Ruchu")
+        solara.SliderInt("Początkowe samoloty", value=num_arriving, min=0, max=15)
+        solara.Select("Kierunek wiatru", value=wind_direction, values=["07", "25"])
+        solara.SliderFloat("Częstotliwość przylotów", value=arrival_rate, min=0.0, max=0.5, step=0.01)
+        
+        solara.Markdown("---")
+        solara.Markdown("### 3. Sterowanie")
+        solara.SliderFloat("Szybkość (ms)", value=simulation_speed, min=50, max=1000)
+        
+        with solara.Row():
+            solara.Button("🔄 Zastosuj i Restartuj", color="primary", on_click=lambda: restart_full(
+                current_model, step_trigger, is_playing,
+                selected_layout.value, 
+                maintenance_mode.value,
+                taxiway_event.value,
+                manual_gates_selected.value,
+                num_arriving.value, wind_direction.value, arrival_rate.value
+            ))
+            
+            solara.Button("▶️ Start/Pauza", on_click=lambda: is_playing.set(not is_playing.value))
+
+
+def restart_full(current_model, step_trigger, is_playing, layout_name, maint_mode, event_mode, manual_gates, num_arr, wind, rate):
+    """Tworzy nowy model z pełną konfiguracją"""
+    is_playing.set(False)
+    
+    layout_path = scenarios.get_layout_path(layout_name)
+    nodes_file = os.path.join(layout_path, "nodes.csv")
+    edges_file = os.path.join(layout_path, "edges.csv")
+    
+    if not os.path.exists(nodes_file):
+        print("Brak pliku mapy, fallback do standard")
+        nodes_file = "data/layout_standard/nodes.csv"
+        edges_file = "data/layout_standard/edges.csv"
+        
+    print(f"Start: {layout_name} | Maint: {maint_mode} | Gates: {manual_gates}")
+    
+    new_model = AirportModel(
+        num_arriving_airplanes=num_arr,
+        wind_direction=wind,
+        arrival_rate=rate,
+        nodes_file=nodes_file,
+        edges_file=edges_file
+    )
+    new_model.layout_name = layout_name
+    
+    scenarios.apply_maintenance(new_model, maint_mode, manual_ids=manual_gates)
+    scenarios.apply_taxiway_events(new_model, event_mode)
+    
+    current_model.set(new_model)
+    step_trigger.set(0)
+
+
+@solara.component
 def Page():
-    """Główna strona aplikacji"""
-    
     current_model = solara.use_reactive(None)
-    step_count = solara.use_reactive(0)
+    step_trigger = solara.use_reactive(0)
     is_playing = solara.use_reactive(False)
-    simulation_speed = solara.use_reactive(50.0) 
-    
-    # Timer do triggerowania aktualizacji wizualnej
-    viz_trigger = solara.use_reactive(0)
+    simulation_speed = solara.use_reactive(100.0)
     
     if current_model.value is None:
-        model = create_initial_model(5, "07", 0.05)
-        current_model.set(model)
-    
-    # Definicja workera
-    def play_worker():
-        last_render_time = 0
-        # Maksymalny FPS dla renderowania (np. 10 klatek/s = co 0.1s)
-        # Matplotlib jest ciężki, więc nie chcemy renderować częściej niż to konieczne
-        MIN_RENDER_INTERVAL = 0.1 
+        restart_full(current_model, step_trigger, is_playing, "Standard (Lewa strona)", "Brak awarii", "Brak utrudnień", [], 5, "25", 0.05)
 
-        while is_playing.value:
-            if current_model.value:
-                # 1. Wykonaj krok logiczny modelu (to jest szybkie)
+    def worker():
+        while True:
+            if is_playing.value and current_model.value:
                 current_model.value.step()
-                
-                # Zwiększamy licznik wewnętrzny modelu (jeśli potrzebny do UI)
-                # Ale NIE robimy tu .set(), żeby nie wymuszać renderu za każdym razem
-                
-                current_time = time.time()
-                sleep_time = simulation_speed.value / 1000.0
-                
-                # 2. Logika Frame Skipping
-                # Jeśli symulacja jest ustawiona na bardzo szybko (np. 50ms), 
-                # a od ostatniego renderu minęło mało czasu, pomiń odświeżanie UI.
-                
-                if sleep_time < MIN_RENDER_INTERVAL:
-                    # Tryb szybki: aktualizuj UI tylko jeśli minął interwał
-                    if current_time - last_render_time > MIN_RENDER_INTERVAL:
-                        step_count.set(current_model.value.step_count) # Aktualizuj licznik
-                        viz_trigger.set(viz_trigger.value + 1)       # Wymuś render
-                        last_render_time = current_time
-                else:
-                    # Tryb wolny: aktualizuj UI za każdym krokiem (1:1)
-                    step_count.set(current_model.value.step_count)
-                    viz_trigger.set(viz_trigger.value + 1)
-                    last_render_time = current_time
+                step_trigger.set(current_model.value.step_count)
+            time.sleep(max(0.1, simulation_speed.value / 1000.0))
             
-            # Czekaj tyle ile użytkownik ustawił
-            time.sleep(simulation_speed.value / 1000.0)
-
-    # WAŻNE: Usunięto simulation_speed.value z dependencies!
-    # Dzięki temu zmiana prędkości nie resetuje wątku, a pętla while i tak
-    # czyta nową wartość .value w następnym obiegu.
-    solara.use_thread(play_worker, dependencies=[is_playing.value])
+    solara.use_thread(worker, dependencies=[])
     
-    with solara.Column():
-        solara.Title("🛫 Symulacja Lotniska Balice")
+    with solara.Column(style={"padding": "10px", "max-width": "1400px", "margin": "0 auto"}):
+        solara.Title("Symulacja Lotniska")
         
-        ControlPanel(current_model, step_count, is_playing, simulation_speed)
-        
-        if current_model.value:
-            with solara.Columns([2, 1]):
-                with solara.Column():
-                    # Używamy viz_trigger do odświeżania wykresów
-                    AirportNetworkViz(current_model.value, update_trigger=viz_trigger.value)
-                    StatesChart(current_model.value, update_trigger=viz_trigger.value)
+        with solara.Columns([1, 2]):
+            ControlPanel(current_model, step_trigger, is_playing, simulation_speed)
+            
+            if current_model.value:
+                with solara.Column(style={"gap": "0px"}):
+                    AirportNetworkViz(current_model.value, update_trigger=step_trigger.value)
                     ServiceTimeChart(current_model.value, update_trigger=viz_trigger.value)
-                
-                with solara.Column():
-                    # InfoPanel też podpinamy pod rzadsze odświeżanie
-                    InfoPanel(current_model.value, update_trigger=viz_trigger.value)
-        else:
-            solara.Warning("Model nie został zainicjalizowany")
+
+                    with solara.Columns([1, 1]):
+                        StatesChart(current_model.value, update_trigger=step_trigger.value)
+                        InfoPanel(current_model.value, update_trigger=step_trigger.value)

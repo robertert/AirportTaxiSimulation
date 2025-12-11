@@ -1,0 +1,45 @@
+from,to,type,length,bidirectional,desc
+8,10,runway,18.0,True,runway
+1,8,runway,23.0,True,runway
+2,10,runway,23.0,True,runway
+5,1,runway_entry,7.0,False,Taxiway F
+2,11,runway_entry,7.0,False,Taxiway A
+10,9,runway_exit,7.0,False,Taxiway C
+8,7,runway_exit,7.0,False,Taxiway D
+11,9,taxiway,23.0,True,Taxiway B (Prawo)
+9,7,taxiway,18.0,True,Taxiway B (Srodek)
+7,5,taxiway,23.0,True,Taxiway B (Lewo)
+38,5,taxiway,8.5,True,Wjazd Lewy (Start Apron -> Node 5)
+54,7,taxiway,6.0,True,Wjazd Srodkowy (Mid Apron -> Node 7)
+68,9,taxiway,7.8,True,Wjazd Prawy (End Apron -> Node 9)
+38,40,apron_link,2.0,True,Apron Lane
+40,42,apron_link,2.0,True,Apron Lane
+42,44,apron_link,2.0,True,Apron Lane
+44,46,apron_link,2.0,True,Apron Lane
+46,48,apron_link,2.0,True,Apron Lane
+48,50,apron_link,2.0,True,Apron Lane
+50,52,apron_link,2.0,True,Apron Lane
+52,54,apron_link,2.0,True,Apron Lane
+54,56,apron_link,2.0,True,Apron Lane
+56,58,apron_link,2.0,True,Apron Lane
+58,60,apron_link,2.0,True,Apron Lane
+60,62,apron_link,2.0,True,Apron Lane
+62,64,apron_link,2.0,True,Apron Lane
+64,66,apron_link,2.0,True,Apron Lane
+66,68,apron_link,2.0,True,Apron Lane
+38,39,stand_link,4.0,True,Stand Link 1
+40,41,stand_link,4.0,True,Stand Link 2
+42,43,stand_link,4.0,True,Stand Link 3
+44,45,stand_link,4.0,True,Stand Link 4
+46,47,stand_link,4.0,True,Stand Link 5
+48,49,stand_link,4.0,True,Stand Link 6
+50,51,stand_link,4.0,True,Stand Link 7
+52,53,stand_link,4.0,True,Stand Link 8
+54,55,stand_link,4.0,True,Stand Link 9
+56,57,stand_link,4.0,True,Stand Link 10
+58,59,stand_link,4.0,True,Stand Link 11
+60,61,stand_link,4.0,True,Stand Link 12
+62,63,stand_link,4.0,True,Stand Link 13
+64,65,stand_link,4.0,True,Stand Link 14
+66,67,stand_link,4.0,True,Stand Link 15
+68,69,stand_link,4.0,True,Stand Link 16
