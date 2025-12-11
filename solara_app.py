@@ -221,7 +221,7 @@ def InfoPanel(model, update_trigger=0):
         """)
 
 @solara.component
-def ControlPanel(current_model, step_trigger, is_playing, simulation_speed):
+def ControlPanel(current_model, step_trigger, is_playing, simulation_speed, show_map):
     selected_layout = solara.use_reactive("Standard (Prawa strona)")
     maintenance_mode = solara.use_reactive("Brak awarii")
     taxiway_event = solara.use_reactive("Brak utrudnień")
@@ -274,6 +274,7 @@ def ControlPanel(current_model, step_trigger, is_playing, simulation_speed):
         solara.Markdown("---")
         solara.Markdown("### 3. Sterowanie")
         solara.SliderFloat("Szybkość (ms)", value=simulation_speed, min=50, max=1000)
+        solara.Switch(label="Pokaż mapę (matplotlib)", value=show_map)
         
         with solara.Row():
             solara.Button("🔄 Zastosuj i Restartuj", color="primary", on_click=lambda: restart_full(
@@ -323,8 +324,10 @@ def restart_full(current_model, step_trigger, is_playing, layout_name, maint_mod
 def Page():
     current_model = solara.use_reactive(None)
     step_trigger = solara.use_reactive(0)
+    chart_trigger = solara.use_reactive(0)  # rzadsze odświeżanie wykresów
     is_playing = solara.use_reactive(False)
     simulation_speed = solara.use_reactive(100.0)
+    show_map = solara.use_reactive(True)
     
     if current_model.value is None:
         restart_full(current_model, step_trigger, is_playing, "Standard (Lewa strona)", "Brak awarii", "Brak utrudnień", [], 5, "25", 0.05)
@@ -334,7 +337,10 @@ def Page():
             if is_playing.value and current_model.value:
                 current_model.value.step()
                 step_trigger.set(current_model.value.step_count)
-            time.sleep(max(0.1, simulation_speed.value / 1000.0))
+                # Odświeżanie wykresów: gdy mapa włączona -> co krok, gdy wyłączona -> co 5 kroków
+                if show_map.value or (current_model.value.step_count % 5 == 0):
+                    chart_trigger.set(current_model.value.step_count)
+            time.sleep(max(0.01, simulation_speed.value / 1000.0))
             
     solara.use_thread(worker, dependencies=[])
     
@@ -342,13 +348,14 @@ def Page():
         solara.Title("Symulacja Lotniska")
         
         with solara.Columns([1, 2]):
-            ControlPanel(current_model, step_trigger, is_playing, simulation_speed)
+            ControlPanel(current_model, step_trigger, is_playing, simulation_speed, show_map)
             
             if current_model.value:
                 with solara.Column(style={"gap": "0px"}):
-                    AirportNetworkViz(current_model.value, update_trigger=step_trigger.value)
-                    ServiceTimeChart(current_model.value, update_trigger=viz_trigger.value)
+                    if show_map.value:
+                        AirportNetworkViz(current_model.value, update_trigger=step_trigger.value)
+                    ServiceTimeChart(current_model.value, update_trigger=chart_trigger.value)
 
                     with solara.Columns([1, 1]):
-                        StatesChart(current_model.value, update_trigger=step_trigger.value)
+                        StatesChart(current_model.value, update_trigger=chart_trigger.value)
                         InfoPanel(current_model.value, update_trigger=step_trigger.value)
